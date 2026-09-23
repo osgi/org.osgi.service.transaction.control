@@ -1,5 +1,4 @@
 # Set javac settings from JDT prefs
--include: ${includes}/jdt.bnd, ${includes}/osgi.tck.junit-platform.bnd, ${includes}/tck.bnd, ${includes}/cmpn.bnd
 
 -conditionalpackage					= org.osgi.test.support.*
 -privatepackage						=  \
@@ -9,22 +8,20 @@
 
 -contract: JavaJPA
 
--buildpath = \
-	${osgi.annotation.buildpath},\
-	org.osgi.test.support;version=project,\
-	org.apache.aries.jpa.javax.persistence_2.1,\
-    org.osgi.framework;maven-scope=provided;version=1.8, \
-    org.osgi.resource;maven-scope=provided;version=1.0,\
-    org.osgi.util.tracker;maven-scope=provided;version=1.5, \
-	org.osgi.service.transaction.control;version=latest,\
-	org.osgi.service.jpa;version=1.1,\
-	org.osgi.service.jdbc;version=1.0,\
-    org.h2; version="[1.4.193,2)"
 
--runbundles = \
-    org.osgi.impl.service.jpa; version=latest, \
-	org.osgi.impl.service.transaction.control.jdbc; version=latest,\
-	org.osgi.impl.service.transaction.control.jpa; version=latest, \
-    org.osgi.impl.service.jdbc.support; version=latest
 
 -signaturetest                      = org.osgi.service.transaction.control.jpa
+
+p: org.osgi.test.cases.transaction.control.jpa
+
+# Maven build: workspace includes replaced inline (from cnf/includes and build.bnd in osgi/osgi)
+# -make.maven, not -make: the key is a map entry and would displace
+# a project-level -make (webcontainer also builds .war recipes this
+# way). bnd merges all -make.* entries.
+-make.maven: (*).(jar); type=bnd; recipe="bnd/$1.bnd"
+
+testcases.junit3: ${classes;EXTENDS;junit.framework.TestCase;CONCRETE}
+testcases.junit4: ${classes;HIERARCHY_ANNOTATED;org.junit.Test;CONCRETE}
+testcases.junit5: ${classes;HIERARCHY_INDIRECTLY_ANNOTATED;org.junit.platform.commons.annotation.Testable;CONCRETE}
+Test-Cases: ${sort;${uniq;${testcases.junit3};${testcases.junit4};${testcases.junit5}}}
+-plugin.signaturetest: SignatureTest
