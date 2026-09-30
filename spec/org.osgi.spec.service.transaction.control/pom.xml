@@ -12,7 +12,7 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<artifactId>org.osgi.spec.service.transaction.control</artifactId>
-	<name>OSGi Specification repo for org.osgi.service.transaction.control</name>
+	<name>OSGi Transaction Control Service Specification</name>
 
 	<dependencies>
 		<dependency>
