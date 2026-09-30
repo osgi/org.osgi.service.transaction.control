@@ -1,5 +1,9 @@
 # org.osgi.service.transaction.control
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/osgi/org.osgi.service.transaction.control/badge)](https://securityscorecards.dev/viewer/?uri=github.com/osgi/org.osgi.service.transaction.control)
+[![build](https://github.com/osgi/org.osgi.service.transaction.control/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/osgi/org.osgi.service.transaction.control/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/org.osgi/org.osgi.service.transaction.control)](https://central.sonatype.com/artifact/org.osgi/org.osgi.service.transaction.control)
+
 OSGi Specification repo for org.osgi.service.transaction.control
 
 Part of the [OSGi Specification Project](https://projects.eclipse.org/projects/technology.osgi).
