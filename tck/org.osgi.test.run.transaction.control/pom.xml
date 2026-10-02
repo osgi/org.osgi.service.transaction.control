@@ -172,7 +172,7 @@
 		<dependency>
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.osgi</artifactId>
-			<version>3.18.100</version>
+			<version>3.24.300</version>
 			<scope>runtime</scope>
 		</dependency>
 		<!--
