@@ -18,7 +18,7 @@
 		<byte-buddy.version>1.12.10</byte-buddy.version>
 		<geronimo-jta_1.1_spec.version>1.1.1</geronimo-jta_1.1_spec.version>
 		<h2.version>1.4.193</h2.version>
-		<hamcrest.version>2.2</hamcrest.version>
+		<hamcrest.version>3.0</hamcrest.version>
 		<javax.persistence_2.1.version>2.7.0</javax.persistence_2.1.version>
 		<junit-jupiter.version>5.12.2</junit-jupiter.version>
 		<junit-platform.version>1.12.2</junit-platform.version>
