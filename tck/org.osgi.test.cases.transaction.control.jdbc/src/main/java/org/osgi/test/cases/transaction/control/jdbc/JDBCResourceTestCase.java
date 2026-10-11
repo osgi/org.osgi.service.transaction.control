@@ -17,18 +17,25 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control.jdbc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.LOCAL_ENLISTMENT_ENABLED;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.XA_ENLISTMENT_ENABLED;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.XA_RECOVERY_ENABLED;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.jdbc.DataSourceFactory;
 import org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory;
-import org.osgi.test.support.OSGiTestCase;
+import org.osgi.test.common.annotation.InjectBundleContext;
 import org.osgi.util.tracker.ServiceTracker;
 
-public abstract class JDBCResourceTestCase extends OSGiTestCase {
+public abstract class JDBCResourceTestCase {
+
+	@InjectBundleContext
+	BundleContext		context;
 	
 	private ServiceTracker<JDBCConnectionProviderFactory,JDBCConnectionProviderFactory>	tracker;
 
@@ -46,20 +53,20 @@ public abstract class JDBCResourceTestCase extends OSGiTestCase {
 
 	protected boolean																	recoveryEnabled;
 
-	protected void setUp() throws Exception {
+	@BeforeEach
+	public void setUp() throws Exception {
 		tracker = new ServiceTracker<JDBCConnectionProviderFactory,JDBCConnectionProviderFactory>(
-				getContext(), JDBCConnectionProviderFactory.class, null);
+				context, JDBCConnectionProviderFactory.class, null);
 		tracker.open();
 
 		dsfTracker = new ServiceTracker<DataSourceFactory,DataSourceFactory>(
-				getContext(), DataSourceFactory.class, null);
+				context, DataSourceFactory.class, null);
 		dsfTracker.open();
 
 		jdbcResourceProviderFactory = tracker.waitForService(5000);
 		dataSourceFactory = dsfTracker.waitForService(5000);
 
-		assertNotNull("No Tx Control service available within 5 seconds",
-				jdbcResourceProviderFactory);
+		assertThat(jdbcResourceProviderFactory).as("No Tx Control service available within 5 seconds").isNotNull();
 
 		ServiceReference<JDBCConnectionProviderFactory> ref = tracker
 				.getServiceReference();
@@ -69,14 +76,13 @@ public abstract class JDBCResourceTestCase extends OSGiTestCase {
 		localEnabled = toBoolean(ref.getProperty(LOCAL_ENLISTMENT_ENABLED));
 		xaEnabled = toBoolean(ref.getProperty(XA_ENLISTMENT_ENABLED));
 
-		assertTrue(
-				"This transaction control service does not support local or xa transactions",
-				localEnabled || xaEnabled);
+		assertThat(localEnabled || xaEnabled).as("This transaction control service does not support local or xa transactions").isTrue();
 
 		recoveryEnabled = toBoolean(ref.getProperty(XA_RECOVERY_ENABLED));
 	}
 	
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		tracker.close();
 		dsfTracker.close();
 	}

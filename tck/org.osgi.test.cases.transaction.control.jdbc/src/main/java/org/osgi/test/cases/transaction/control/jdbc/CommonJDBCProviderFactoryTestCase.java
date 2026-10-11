@@ -20,6 +20,9 @@ package org.osgi.test.cases.transaction.control.jdbc;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.fail;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.CONNECTION_POOLING_ENABLED;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.MAX_CONNECTIONS;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.MIN_CONNECTIONS;
@@ -36,6 +39,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.TransactionControl;
 import org.osgi.service.transaction.control.TransactionException;
 import org.osgi.service.transaction.control.jdbc.JDBCConnectionProvider;
@@ -57,6 +63,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 
 	private JDBCConnectionProvider	provider;
 
+	@BeforeEach
 	public void setUp() throws Exception {
 		super.setUp();
 
@@ -85,6 +92,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	protected abstract JDBCConnectionProvider getProvider(Properties props,
 			Map<String,Object> providerConfig) throws SQLException;
 
+	@AfterEach
 	public void tearDown() {
 
 		try (Connection c = unmanaged) {
@@ -110,6 +118,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testEnlistmentLocal() throws Exception {
 
 		if (!localEnabled) {
@@ -129,9 +138,9 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
-		assertEquals(1, tran.getEnlistedLocalResources().size());
+		assertThat(tran.getEnlistedLocalResources()).hasSize(1);
 
 		tran.finish(false);
 	}
@@ -141,6 +150,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testEnlistmentXA() throws Exception {
 
 		if (!xaEnabled) {
@@ -160,9 +170,9 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
-		assertEquals(1, tran.getEnlistedXAResources().size());
+		assertThat(tran.getEnlistedXAResources()).hasSize(1);
 
 		tran.finish(false);
 	}
@@ -173,6 +183,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testNoNeedToClose() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -189,7 +200,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 			ResultSet rs = scoped.createStatement()
 					.executeQuery("SELECT MESSAGE FROM TEST");
 			rs.next();
-			assertEquals("TEST", rs.getString(1));
+			assertThat(rs.getString(1)).isEqualTo("TEST");
 			noTran.finish(false);
 		}
 
@@ -197,7 +208,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 			try (ResultSet rs = s.executeQuery(
 					"Select COUNT(ID) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs.next();
-				assertEquals(1, rs.getInt(1));
+				assertThat(rs.getInt(1)).isOne();
 			}
 		}
 	}
@@ -207,18 +218,15 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testUnscopedUsage() throws Exception {
 
 		TransactionControl unscoped = new UnscopedTxControl();
 
 		Connection scoped = provider.getResource(unscoped);
 
-		try {
-			scoped.createStatement();
-			fail("Should not be able to use a scoped resource outside of a scope");
-		} catch (TransactionException te) {
-			// Expected
-		}
+		assertThatExceptionOfType(TransactionException.class).as("Should not be able to use a scoped resource outside of a scope")
+				.isThrownBy(() -> scoped.createStatement());
 	}
 
 	/**
@@ -226,6 +234,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testCloseIgnored() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -241,14 +250,14 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
 		// This should be ignored
 		scoped.close();
 
 		rs = scoped.createStatement().executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
 		noTran.finish(false);
 	}
@@ -268,6 +277,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testCommitAndRollbackIgnored() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -281,34 +291,20 @@ public abstract class CommonJDBCProviderFactoryTestCase
 
 		Connection scoped = provider.getResource(tran);
 
-		try {
-			scoped.commit();
-			fail("commit Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.setAutoCommit(true);
-			fail("setAutoCommit Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.setSavepoint();
-			fail("setSavepoint Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.setSavepoint("test");
-			fail("setSavepoint Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.releaseSavepoint(null);
-			fail("releaseSavepoint Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.rollback();
-			fail("rollback Should not be callable");
-		} catch (TransactionException te) {}
-		try {
-			scoped.rollback(null);
-			fail("rollback Should not be callable");
-		} catch (TransactionException te) {}
+		assertThatExceptionOfType(TransactionException.class).as("commit Should not be callable")
+				.isThrownBy(() -> scoped.commit());
+		assertThatExceptionOfType(TransactionException.class).as("setAutoCommit Should not be callable")
+				.isThrownBy(() -> scoped.setAutoCommit(true));
+		assertThatExceptionOfType(TransactionException.class).as("setSavepoint Should not be callable")
+				.isThrownBy(() -> scoped.setSavepoint());
+		assertThatExceptionOfType(TransactionException.class).as("setSavepoint Should not be callable")
+				.isThrownBy(() -> scoped.setSavepoint("test"));
+		assertThatExceptionOfType(TransactionException.class).as("releaseSavepoint Should not be callable")
+				.isThrownBy(() -> scoped.releaseSavepoint(null));
+		assertThatExceptionOfType(TransactionException.class).as("rollback Should not be callable")
+				.isThrownBy(() -> scoped.rollback());
+		assertThatExceptionOfType(TransactionException.class).as("rollback Should not be callable")
+				.isThrownBy(() -> scoped.rollback(null));
 
 		tran.finish(false);
 	}
@@ -318,6 +314,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testProviderRelease() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -334,9 +331,9 @@ public abstract class CommonJDBCProviderFactoryTestCase
 
 		try {
 			scoped.createStatement();
-			fail("This resource should be invalid after the provider is released");
+			fail("Should not be able to use a scoped resource outside of a scope");
 		} catch (TransactionException te) {
-			// expected
+			// Expected
 		}
 
 		noTran.finish(false);
@@ -349,7 +346,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 		noTran.finish(false);
 
 		// Give the pool time to settle
@@ -360,7 +357,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 					"Select COUNT(*) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs2.next();
 				// 5 in the pool and one unmanaged
-				assertEquals(6, rs2.getInt(1));
+				assertThat(rs2.getInt(1)).isEqualTo(6);
 			}
 		}
 
@@ -371,7 +368,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 					"Select COUNT(*) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs2.next();
 				// The pool is closed and one unmanaged
-				assertEquals(1, rs2.getInt(1));
+				assertThat(rs2.getInt(1)).isOne();
 			}
 		}
 
@@ -382,6 +379,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTransactionIsolation() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -396,21 +394,21 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		Statement scopedStatement = scoped.createStatement();
 		scopedStatement.execute("INSERT INTO TEST (MESSAGE) VALUES ('TEST')");
 
-		assertEquals(emptyList(), getMessages());
+		assertThat(getMessages()).isEqualTo(emptyList());
 
 		tran.finish(false);
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		scopedStatement = scoped.createStatement();
 		scopedStatement.execute("INSERT INTO TEST (MESSAGE) VALUES ('TEST2')");
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 		tran.setRollbackOnly();
 
 		tran.finish(false);
 
-		assertEquals(asList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(asList("TEST"));
 	}
 
 	private List<String> getMessages() throws SQLException {
@@ -430,6 +428,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testNoTransactionIsolation() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -445,26 +444,26 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		Statement scopedStatement = scoped.createStatement();
 		scopedStatement.execute("INSERT INTO TEST (MESSAGE) VALUES ('TEST')");
 
-		assertEquals(emptyList(), getMessages());
+		assertThat(getMessages()).isEqualTo(emptyList());
 
 		scoped.commit();
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		scopedStatement.execute("INSERT INTO TEST (MESSAGE) VALUES ('TEST2')");
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		Savepoint sp = scoped.setSavepoint("testing");
 
 		scopedStatement.execute("INSERT INTO TEST (MESSAGE) VALUES ('TEST3')");
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		scoped.rollback(sp);
 		scoped.commit();
 
-		assertEquals(asList("TEST", "TEST2"), getMessages());
+		assertThat(getMessages()).isEqualTo(asList("TEST", "TEST2"));
 
 		noTran.finish(false);
 	}
@@ -474,6 +473,7 @@ public abstract class CommonJDBCProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testAbortIgnored() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -489,14 +489,14 @@ public abstract class CommonJDBCProviderFactoryTestCase
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
 		// This should be ignored
 		scoped.abort(Executors.newSingleThreadExecutor());
 
 		rs = scoped.createStatement().executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
 		noTran.finish(false);
 	}

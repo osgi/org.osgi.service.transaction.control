@@ -20,6 +20,9 @@ package org.osgi.test.cases.transaction.control.jpa;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -31,6 +34,9 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaQuery;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.TransactionException;
 import org.osgi.service.transaction.control.jpa.JPAEntityManagerProvider;
 import org.osgi.test.cases.transaction.control.jpa.control.TestTransactionControl;
@@ -50,6 +56,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 	protected JPAEntityManagerProvider	provider;
 
+	@BeforeEach
 	public void setUp() throws Exception {
 		super.setUp();
 
@@ -66,6 +73,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 		return createProvider(0);
 	}
 
+	@AfterEach
 	public void tearDown() {
 
 		try (Connection c = unmanaged) {
@@ -95,6 +103,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testEnlistmentLocal() throws Exception {
 
 		if (!localEnabled) {
@@ -114,10 +123,9 @@ public abstract class CommonJPAProviderFactoryTestCase
 		CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 				.createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 
-		assertEquals(1, tran.getEnlistedLocalResources().size());
+		assertThat(tran.getEnlistedLocalResources()).hasSize(1);
 
 		tran.finish(false);
 	}
@@ -127,6 +135,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testEnlistmentXA() throws Exception {
 
 		if (!xaEnabled) {
@@ -146,10 +155,9 @@ public abstract class CommonJPAProviderFactoryTestCase
 		CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 				.createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 
-		assertEquals(1, tran.getEnlistedXAResources().size());
+		assertThat(tran.getEnlistedXAResources()).hasSize(1);
 
 		tran.finish(false);
 	}
@@ -160,6 +168,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testNoNeedToClose() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -178,8 +187,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 			CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 					.createQuery(TestEntity.class);
 			query.from(TestEntity.class);
-			assertEquals("TEST",
-					scoped.createQuery(query).getSingleResult().message);
+			assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 			noTran.finish(false);
 		}
 
@@ -187,7 +195,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 			try (ResultSet rs = s.executeQuery(
 					"Select COUNT(ID) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs.next();
-				assertEquals(1, rs.getInt(1));
+				assertThat(rs.getInt(1)).isOne();
 			}
 		}
 	}
@@ -197,6 +205,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testCloseIgnored() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -213,16 +222,14 @@ public abstract class CommonJPAProviderFactoryTestCase
 		CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 				.createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 
 		// This should be ignored
 		scoped.close();
 
 		query = scoped.getCriteriaBuilder().createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 
 		noTran.finish(false);
 	}
@@ -234,6 +241,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testGetTransactionForbidden() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -247,14 +255,12 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 		EntityManager scoped = provider.getResource(tran);
 
-		try {
-			scoped.getTransaction();
-			fail("commit Should not be callable");
-		} catch (TransactionException te) {}
+		assertThatExceptionOfType(TransactionException.class).as("commit Should not be callable")
+				.isThrownBy(() -> scoped.getTransaction());
 
 		scoped.joinTransaction();
 
-		assertTrue(scoped.isJoinedToTransaction());
+		assertThat(scoped.isJoinedToTransaction()).isTrue();
 
 		tran.finish(false);
 	}
@@ -265,6 +271,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testJoinForbidden() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -279,12 +286,10 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 		EntityManager scoped = provider.getResource(noTran);
 
-		try {
-			scoped.joinTransaction();
-			fail("joinTransaction Should not be callable");
-		} catch (TransactionException te) {}
+		assertThatExceptionOfType(TransactionException.class).as("joinTransaction Should not be callable")
+				.isThrownBy(() -> scoped.joinTransaction());
 
-		assertFalse(scoped.isJoinedToTransaction());
+		assertThat(scoped.isJoinedToTransaction()).isFalse();
 
 		noTran.finish(false);
 	}
@@ -294,6 +299,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testProviderRelease() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -327,8 +333,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 		CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 				.createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 		noTran.finish(false);
 
 		// Give the pool time to settle
@@ -339,7 +344,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 					"Select COUNT(*) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs2.next();
 				// 5 in the pool and one unmanaged
-				assertEquals(6, rs2.getInt(1));
+				assertThat(rs2.getInt(1)).isEqualTo(6);
 			}
 		}
 
@@ -350,7 +355,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 					"Select COUNT(*) from INFORMATION_SCHEMA.SESSIONS")) {
 				rs2.next();
 				// The pool is closed and one unmanaged
-				assertEquals(1, rs2.getInt(1));
+				assertThat(rs2.getInt(1)).isOne();
 			}
 		}
 
@@ -361,6 +366,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTransactionIsolation() throws Exception {
 
 		try (Statement s = unmanaged.createStatement()) {
@@ -378,22 +384,22 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 		scoped.persist(te);
 
-		assertEquals(emptyList(), getMessages());
+		assertThat(getMessages()).isEqualTo(emptyList());
 
 		tran.finish(false);
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		te = new TestEntity();
 		te.message = "TEST2";
 		scoped.persist(te);
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 		tran.setRollbackOnly();
 
 		tran.finish(false);
 
-		assertEquals(asList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(asList("TEST"));
 	}
 
 	private List<String> getMessages() throws SQLException {
@@ -413,6 +419,7 @@ public abstract class CommonJPAProviderFactoryTestCase
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testNoTransactionIsolation() throws Exception {
 
 		if (!localEnabled) {
@@ -436,11 +443,11 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 		scoped.persist(te);
 
-		assertEquals(emptyList(), getMessages());
+		assertThat(getMessages()).isEqualTo(emptyList());
 
 		scoped.getTransaction().commit();
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		scoped.getTransaction().begin();
 
@@ -449,13 +456,13 @@ public abstract class CommonJPAProviderFactoryTestCase
 
 		scoped.persist(te);
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		scoped.getTransaction().setRollbackOnly();
 
 		scoped.getTransaction().rollback();
 
-		assertEquals(singletonList("TEST"), getMessages());
+		assertThat(getMessages()).isEqualTo(singletonList("TEST"));
 
 		noTran.finish(false);
 	}

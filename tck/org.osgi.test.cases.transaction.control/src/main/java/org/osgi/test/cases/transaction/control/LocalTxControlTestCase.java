@@ -17,12 +17,15 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.osgi.service.transaction.control.TransactionStatus.COMMITTING;
 import static org.osgi.service.transaction.control.TransactionStatus.ROLLING_BACK;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.ScopedWorkException;
 import org.osgi.service.transaction.control.TransactionException;
 import org.osgi.service.transaction.control.TransactionRolledBackException;
@@ -42,6 +45,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlSupportsLocal() throws Exception {
 
 		if (xaEnabled) {
@@ -51,7 +55,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.getCurrentContext().supportsLocal());
+				assertThat(txControl.getCurrentContext().supportsLocal()).isTrue();
 				return null;
 			}
 		});
@@ -62,6 +66,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlLocalCommit() throws Exception {
 
 		if (xaEnabled) {
@@ -80,8 +85,8 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertNull(resource.getRollbackStatus());
-		assertEquals(COMMITTING, resource.getCommitStatus());
+		assertThat(resource.getRollbackStatus()).isNull();
+		assertThat(resource.getCommitStatus()).isEqualTo(COMMITTING);
 	}
 
 	/**
@@ -89,6 +94,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlLocalRollback() throws Exception {
 
 		if (xaEnabled) {
@@ -108,8 +114,8 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertNull(resource.getCommitStatus());
-		assertEquals(ROLLING_BACK, resource.getRollbackStatus());
+		assertThat(resource.getCommitStatus()).isNull();
+		assertThat(resource.getRollbackStatus()).isEqualTo(ROLLING_BACK);
 	}
 
 	/**
@@ -117,6 +123,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlLocalFirstParticipantFailure() throws Exception {
 
 		if (xaEnabled) {
@@ -155,18 +162,18 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 			});
 			fail("Must throw a TransactionRolledBackException");
 		} catch (TransactionRolledBackException te) {
-			assertSame(ise, te.getCause());
+			assertThat(te.getCause()).isSameAs(ise);
 		}
 
 		if (resource.getCommitStatus() == null) {
-			assertEquals(ROLLING_BACK, resource.getRollbackStatus());
-			assertNull(resource2.getRollbackStatus());
-			assertEquals(COMMITTING, resource2.getCommitStatus());
+			assertThat(resource.getRollbackStatus()).isEqualTo(ROLLING_BACK);
+			assertThat(resource2.getRollbackStatus()).isNull();
+			assertThat(resource2.getCommitStatus()).isEqualTo(COMMITTING);
 		} else {
-			assertNull(resource.getRollbackStatus());
-			assertEquals(ROLLING_BACK, resource2.getRollbackStatus());
-			assertEquals(COMMITTING, resource.getCommitStatus());
-			assertNull(resource2.getCommitStatus());
+			assertThat(resource.getRollbackStatus()).isNull();
+			assertThat(resource2.getRollbackStatus()).isEqualTo(ROLLING_BACK);
+			assertThat(resource.getCommitStatus()).isEqualTo(COMMITTING);
+			assertThat(resource2.getCommitStatus()).isNull();
 		}
 	}
 
@@ -175,6 +182,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlLocalSecondParticipantFailure() throws Exception {
 
 		if (xaEnabled) {
@@ -231,15 +239,15 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 			});
 			fail("Must throw a TransactionException");
 		} catch (TransactionException te) {
-			assertSame(ise, te.getCause());
+			assertThat(te.getCause()).isSameAs(ise);
 		}
 
-		assertNull(resource.getRollbackStatus());
-		assertEquals(COMMITTING, resource.getCommitStatus());
-		assertNull(resource2.getRollbackStatus());
-		assertEquals(COMMITTING, resource2.getCommitStatus());
-		assertNull(resource3.getRollbackStatus());
-		assertEquals(COMMITTING, resource3.getCommitStatus());
+		assertThat(resource.getRollbackStatus()).isNull();
+		assertThat(resource.getCommitStatus()).isEqualTo(COMMITTING);
+		assertThat(resource2.getRollbackStatus()).isNull();
+		assertThat(resource2.getCommitStatus()).isEqualTo(COMMITTING);
+		assertThat(resource3.getRollbackStatus()).isNull();
+		assertThat(resource3.getCommitStatus()).isEqualTo(COMMITTING);
 	}
 
 	/**
@@ -247,6 +255,7 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlLocalFirstParticipantRollbackFailure()
 			throws Exception {
 
@@ -288,17 +297,17 @@ public class LocalTxControlTestCase extends TxControlTestCase {
 			});
 			fail("Must throw a TransactionRolledBackException");
 		} catch (ScopedWorkException swe) {
-			assertSame(ise2, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(ise2);
 			Throwable[] suppressed = swe.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(2, suppressed.length);
-			assertSame(ise, suppressed[0]);
-			assertSame(ise, suppressed[1]);
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(2);
+			assertThat(suppressed[0]).isSameAs(ise);
+			assertThat(suppressed[1]).isSameAs(ise);
 		}
 
-		assertNull(resource.getCommitStatus());
-		assertNull(resource2.getCommitStatus());
-		assertEquals(ROLLING_BACK, resource.getRollbackStatus());
-		assertEquals(ROLLING_BACK, resource2.getRollbackStatus());
+		assertThat(resource.getCommitStatus()).isNull();
+		assertThat(resource2.getCommitStatus()).isNull();
+		assertThat(resource.getRollbackStatus()).isEqualTo(ROLLING_BACK);
+		assertThat(resource2.getRollbackStatus()).isEqualTo(ROLLING_BACK);
 	}
 }

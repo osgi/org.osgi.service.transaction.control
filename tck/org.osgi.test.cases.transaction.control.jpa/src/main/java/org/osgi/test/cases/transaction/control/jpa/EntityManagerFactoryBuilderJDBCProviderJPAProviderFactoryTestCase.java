@@ -17,6 +17,7 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control.jpa;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory.CONNECTION_POOLING_ENABLED;
 import static org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory.LOCAL_ENLISTMENT_ENABLED;
 import static org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory.MAX_CONNECTIONS;
@@ -47,11 +48,11 @@ public class EntityManagerFactoryBuilderJDBCProviderJPAProviderFactoryTestCase
 		props.setProperty("url", H2_URL);
 
 		ServiceTracker<JDBCConnectionProviderFactory,JDBCConnectionProviderFactory> tracker = new ServiceTracker<>(
-				getContext(), JDBCConnectionProviderFactory.class, null);
+				context, JDBCConnectionProviderFactory.class, null);
 		tracker.open();
 
 		factory = tracker.waitForService(5000);
-		assertNotNull(factory);
+		assertThat(factory).isNotNull();
 
 		Map<String,Object> providerConfig = new HashMap<>();
 		providerConfig.put(LOCAL_ENLISTMENT_ENABLED, localEnabled);

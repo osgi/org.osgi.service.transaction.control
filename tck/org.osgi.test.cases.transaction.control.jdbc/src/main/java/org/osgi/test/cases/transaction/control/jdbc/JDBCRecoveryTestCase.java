@@ -18,6 +18,7 @@
 package org.osgi.test.cases.transaction.control.jdbc;
 
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.LOCAL_ENLISTMENT_ENABLED;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.OSGI_RECOVERY_IDENTIFIER;
 import static org.osgi.service.transaction.control.jdbc.JDBCConnectionProviderFactory.XA_ENLISTMENT_ENABLED;
@@ -33,6 +34,9 @@ import java.util.Properties;
 
 import javax.transaction.xa.XAResource;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.jdbc.JDBCConnectionProvider;
 import org.osgi.service.transaction.control.recovery.RecoverableXAResource;
 import org.osgi.test.cases.transaction.control.jdbc.control.TestTransactionControl;
@@ -46,8 +50,8 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 
 	private Connection				unmanaged;
 
-	@Override
-	protected void setUp() throws Exception {
+	@BeforeEach
+	public void setUp() throws Exception {
 		super.setUp();
 
 		provider = getProvider();
@@ -56,8 +60,8 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 				.connect("jdbc:h2:mem:test", null);
 	}
 
-	@Override
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		try {
 			jdbcResourceProviderFactory.releaseProvider(provider);
 		} catch (Exception e) {
@@ -98,6 +102,7 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testRecoveryIdIsRegisteredWithXAResource() throws Exception {
 		if (!recoveryEnabled) {
 			return;
@@ -116,13 +121,12 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 		ResultSet rs = scoped.createStatement()
 				.executeQuery("SELECT MESSAGE FROM TEST");
 		rs.next();
-		assertEquals("TEST", rs.getString(1));
+		assertThat(rs.getString(1)).isEqualTo("TEST");
 
 		Map<XAResource,String> enlistedXAResources = tran
 				.getEnlistedXAResources();
-		assertEquals(1, enlistedXAResources.size());
-		assertEquals(singleton(RECOVERY_ID),
-				new HashSet<>(enlistedXAResources.values()));
+		assertThat(enlistedXAResources.size()).isEqualTo(1);
+		assertThat(new HashSet<>(enlistedXAResources.values())).isEqualTo(singleton(RECOVERY_ID));
 
 		tran.finish(false);
 	}
@@ -132,6 +136,7 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testRecoveryServiceIsRegistered() throws Exception {
 
 		if (!recoveryEnabled) {
@@ -139,17 +144,17 @@ public class JDBCRecoveryTestCase extends JDBCResourceTestCase {
 		}
 
 		ServiceTracker<RecoverableXAResource,RecoverableXAResource> tracker = new ServiceTracker<>(
-				getContext(), RecoverableXAResource.class, null);
+				context, RecoverableXAResource.class, null);
 		tracker.open();
 
 		RecoverableXAResource recoveryService = tracker.waitForService(5000);
-		assertNotNull(recoveryService);
+		assertThat(recoveryService).isNotNull();
 
-		assertEquals(RECOVERY_ID, recoveryService.getId());
+		assertThat(recoveryService.getId()).isEqualTo(RECOVERY_ID);
 
 		jdbcResourceProviderFactory.releaseProvider(provider);
 
-		assertNull(tracker.waitForService(2000));
+		assertThat(tracker.waitForService(2000)).isNull();
 
 		tracker.close();
 	}
