@@ -18,6 +18,7 @@
 package org.osgi.test.cases.transaction.control.jpa;
 
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory.OSGI_RECOVERY_IDENTIFIER;
 
 import java.sql.Connection;
@@ -32,6 +33,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.transaction.xa.XAResource;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.jpa.JPAEntityManagerProvider;
 import org.osgi.service.transaction.control.recovery.RecoverableXAResource;
 import org.osgi.test.cases.transaction.control.jpa.control.TestTransactionControl;
@@ -46,8 +50,8 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 
 	private Connection				unmanaged;
 
-	@Override
-	protected void setUp() throws Exception {
+	@BeforeEach
+	public void setUp() throws Exception {
 		super.setUp();
 
 		provider = getProvider();
@@ -56,8 +60,8 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 				.connect("jdbc:h2:mem:test", null);
 	}
 
-	@Override
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		try {
 			jpaResourceProviderFactory.releaseProvider(provider);
 		} catch (Exception e) {
@@ -100,6 +104,7 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testRecoveryIdIsRegisteredWithXAResource() throws Exception {
 
 		if (!recoveryEnabled) {
@@ -119,14 +124,12 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 		CriteriaQuery<TestEntity> query = scoped.getCriteriaBuilder()
 				.createQuery(TestEntity.class);
 		query.from(TestEntity.class);
-		assertEquals("TEST",
-				scoped.createQuery(query).getSingleResult().message);
+		assertThat(scoped.createQuery(query).getSingleResult().message).isEqualTo("TEST");
 
 		Map<XAResource,String> enlistedXAResources = tran
 				.getEnlistedXAResources();
-		assertEquals(1, enlistedXAResources.size());
-		assertEquals(singleton(RECOVERY_ID),
-				new HashSet<>(enlistedXAResources.values()));
+		assertThat(enlistedXAResources.size()).isEqualTo(1);
+		assertThat(new HashSet<>(enlistedXAResources.values())).isEqualTo(singleton(RECOVERY_ID));
 
 		tran.finish(false);
 	}
@@ -136,6 +139,7 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testRecoveryServiceIsRegistered() throws Exception {
 
 		if (!recoveryEnabled) {
@@ -148,12 +152,12 @@ public class JPARecoveryTestCase extends JPAResourceTestCase {
 		EntityManager em = provider.getResource(tran);
 
 		ServiceTracker<RecoverableXAResource,RecoverableXAResource> tracker = new ServiceTracker<>(
-				getContext(), RecoverableXAResource.class, null);
+				context, RecoverableXAResource.class, null);
 		tracker.open();
 
 		RecoverableXAResource recoveryService = tracker.waitForService(5000);
-		assertNotNull(recoveryService);
+		assertThat(recoveryService).isNotNull();
 
-		assertEquals(RECOVERY_ID, recoveryService.getId());
+		assertThat(recoveryService.getId()).isEqualTo(RECOVERY_ID);
 	}
 }

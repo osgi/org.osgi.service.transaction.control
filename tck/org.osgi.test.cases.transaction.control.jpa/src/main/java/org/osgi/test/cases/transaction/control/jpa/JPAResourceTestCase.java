@@ -17,15 +17,23 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control.jpa;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.jdbc.DataSourceFactory;
 import org.osgi.service.jpa.EntityManagerFactoryBuilder;
 import org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory;
-import org.osgi.test.support.OSGiTestCase;
+import org.osgi.test.common.annotation.InjectBundleContext;
 import org.osgi.util.tracker.ServiceTracker;
 
-public abstract class JPAResourceTestCase extends OSGiTestCase {
+public abstract class JPAResourceTestCase {
+
+	@InjectBundleContext
+	BundleContext		context;
 	
 	private ServiceTracker<JPAEntityManagerProviderFactory,JPAEntityManagerProviderFactory>	tracker;
 
@@ -47,16 +55,17 @@ public abstract class JPAResourceTestCase extends OSGiTestCase {
 
 	protected boolean																		recoveryEnabled;
 
-	protected void setUp() throws Exception {
-		tracker = new ServiceTracker<>(getContext(),
+	@BeforeEach
+	public void setUp() throws Exception {
+		tracker = new ServiceTracker<>(context,
 				JPAEntityManagerProviderFactory.class, null);
 		tracker.open();
 
-		dsfTracker = new ServiceTracker<>(getContext(), DataSourceFactory.class,
+		dsfTracker = new ServiceTracker<>(context, DataSourceFactory.class,
 				null);
 		dsfTracker.open();
 
-		emfBuilderTracker = new ServiceTracker<>(getContext(),
+		emfBuilderTracker = new ServiceTracker<>(context,
 				EntityManagerFactoryBuilder.class, null);
 		emfBuilderTracker.open();
 
@@ -64,8 +73,7 @@ public abstract class JPAResourceTestCase extends OSGiTestCase {
 		dataSourceFactory = dsfTracker.waitForService(5000);
 		emfBuilder = emfBuilderTracker.waitForService(5000);
 
-		assertNotNull("No Tx Control service available within 5 seconds",
-				jpaResourceProviderFactory);
+		assertThat(jpaResourceProviderFactory).as("No Tx Control service available within 5 seconds").isNotNull();
 
 		ServiceReference<JPAEntityManagerProviderFactory> ref = tracker
 				.getServiceReference();
@@ -75,14 +83,13 @@ public abstract class JPAResourceTestCase extends OSGiTestCase {
 		localEnabled = toBoolean(ref.getProperty("osgi.local.enabled"));
 		xaEnabled = toBoolean(ref.getProperty("osgi.xa.enabled"));
 
-		assertTrue(
-				"This transaction control service does not support local or xa transactions",
-				localEnabled || xaEnabled);
+		assertThat(localEnabled || xaEnabled).as("This transaction control service does not support local or xa transactions").isTrue();
 
 		recoveryEnabled = toBoolean(ref.getProperty("osgi.recovery.enabled"));
 	}
 	
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		tracker.close();
 		dsfTracker.close();
 		emfBuilderTracker.close();

@@ -17,7 +17,8 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control;
 
-import static org.junit.Assert.assertNotEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.osgi.service.transaction.control.TransactionStatus.ACTIVE;
 import static org.osgi.service.transaction.control.TransactionStatus.COMMITTED;
 import static org.osgi.service.transaction.control.TransactionStatus.MARKED_ROLLBACK;
@@ -27,6 +28,7 @@ import static org.osgi.service.transaction.control.TransactionStatus.ROLLED_BACK
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.ScopedWorkException;
 import org.osgi.service.transaction.control.TransactionContext;
 import org.osgi.service.transaction.control.TransactionException;
@@ -42,21 +44,22 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Required starts a Transaction scope from unscoped
 	 */
+	@Test
 	public void testRequiredFromUnscoped() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 
 				TransactionContext current = txControl.getCurrentContext();
-				assertNotNull(current);
-				assertEquals(ACTIVE, current.getTransactionStatus());
+				assertThat(current).isNotNull();
+				assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 				return null;
 			}
 		});
@@ -65,47 +68,46 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Required starts a Transaction scope from no transaction
 	 */
+	@Test
 	public void testRequiredFromNoTransaction() {
 		
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 		
 		txControl.notSupported(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
-				assertNull(outer.getTransactionKey());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
+				assertThat(outer.getTransactionKey()).isNull();
 
 				TransactionContext nested = txControl
 						.required(new Callable<TransactionContext>() {
 							@Override
 							public TransactionContext call() throws Exception {
-								assertTrue(txControl.activeScope());
-								assertTrue(txControl.activeTransaction());
+								assertThat(txControl.activeScope()).isTrue();
+								assertThat(txControl.activeTransaction()).isTrue();
 
 								TransactionContext current = txControl
 										.getCurrentContext();
-								assertNotNull(current);
-								assertEquals(ACTIVE,
-										current.getTransactionStatus());
+								assertThat(current).isNotNull();
+								assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 
-								assertNotEquals(outer.getTransactionKey(),
-										current.getTransactionKey());
+								assertThat(current.getTransactionKey()).isNotEqualTo(outer.getTransactionKey());
 
 								return current;
 							}
 				});
 
-				assertEquals(COMMITTED, nested.getTransactionStatus());
+				assertThat(nested.getTransactionStatus()).isEqualTo(COMMITTED);
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 
 				return null;
 			}
@@ -115,42 +117,42 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Required inherits a Transaction scope from transaction scope
 	 */
+	@Test
 	public void testRequiredFromTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				txControl.required(new Callable<Object>() {
 					@Override
 					public Object call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertTrue(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isTrue();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(ACTIVE, current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 
-						assertEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isEqualTo(outer.getTransactionKey());
 
 						return null;
 					}
 				});
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				return null;
 			}
@@ -160,21 +162,22 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 RequiresNew starts a Transaction scope from unscoped
 	 */
+	@Test
 	public void testRequiresNewFromUnscoped() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.requiresNew(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 
 				TransactionContext current = txControl.getCurrentContext();
-				assertNotNull(current);
-				assertEquals(ACTIVE, current.getTransactionStatus());
+				assertThat(current).isNotNull();
+				assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 				return null;
 			}
 		});
@@ -183,46 +186,46 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 RequiresNew starts a Transaction scope from no transaction
 	 */
+	@Test
 	public void testRequiresNewFromNoTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.notSupported(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
-				assertNull(outer.getTransactionKey());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
+				assertThat(outer.getTransactionKey()).isNull();
 
 				TransactionContext nested = txControl
 						.requiresNew(new Callable<TransactionContext>() {
 					@Override
 							public TransactionContext call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertTrue(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isTrue();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(ACTIVE, current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 
-						assertNotEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isNotEqualTo(outer.getTransactionKey());
 
 								return current;
 					}
 				});
 
-				assertEquals(COMMITTED, nested.getTransactionStatus());
+				assertThat(nested.getTransactionStatus()).isEqualTo(COMMITTED);
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 
 				return null;
 			}
@@ -232,45 +235,45 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 RequiresNew inherits a Transaction scope from transaction scope
 	 */
+	@Test
 	public void testRequiresNewFromTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				TransactionContext nested = txControl
 						.requiresNew(new Callable<TransactionContext>() {
 					@Override
 							public TransactionContext call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertTrue(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isTrue();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(ACTIVE, current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 
-						assertNotEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isNotEqualTo(outer.getTransactionKey());
 
 								return current;
 					}
 				});
 
-				assertEquals(COMMITTED, nested.getTransactionStatus());
+				assertThat(nested.getTransactionStatus()).isEqualTo(COMMITTED);
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				return null;
 			}
@@ -280,21 +283,22 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Supports starts a new no transaction scope from unscoped
 	 */
+	@Test
 	public void testSupportsFromUnscoped() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.supports(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 
 				TransactionContext current = txControl.getCurrentContext();
-				assertNotNull(current);
-				assertEquals(NO_TRANSACTION, current.getTransactionStatus());
+				assertThat(current).isNotNull();
+				assertThat(current.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 				return null;
 			}
 		});
@@ -303,37 +307,36 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Supports starts a Transaction scope from no transaction
 	 */
+	@Test
 	public void testSupportsFromNoTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.notSupported(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
-				assertNull(outer.getTransactionKey());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
+				assertThat(outer.getTransactionKey()).isNull();
 
 				return txControl.supports(new Callable<Object>() {
 					@Override
 					public Object call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertFalse(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isFalse();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(NO_TRANSACTION,
-								current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 
-						assertEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isEqualTo(outer.getTransactionKey());
 
 						return null;
 					}
@@ -345,42 +348,42 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 Supports inherits a Transaction scope from transaction scope
 	 */
+	@Test
 	public void testSupportsFromTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				txControl.supports(new Callable<Object>() {
 					@Override
 					public Object call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertTrue(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isTrue();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(ACTIVE, current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
 
-						assertEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isEqualTo(outer.getTransactionKey());
 
 						return null;
 					}
 				});
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				return null;
 			}
@@ -390,21 +393,22 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 notSupported starts a new no transaction scope from unscoped
 	 */
+	@Test
 	public void testNotSupportedFromUnscoped() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.notSupported(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 
 				TransactionContext current = txControl.getCurrentContext();
-				assertNotNull(current);
-				assertEquals(NO_TRANSACTION, current.getTransactionStatus());
+				assertThat(current).isNotNull();
+				assertThat(current.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 				return null;
 			}
 		});
@@ -413,37 +417,36 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 notSupported inherits from no transaction
 	 */
+	@Test
 	public void testNotSupportedFromNoTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.notSupported(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertFalse(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isFalse();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(NO_TRANSACTION, outer.getTransactionStatus());
-				assertNull(outer.getTransactionKey());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
+				assertThat(outer.getTransactionKey()).isNull();
 
 				return txControl.notSupported(new Callable<Object>() {
 					@Override
 					public Object call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertFalse(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isFalse();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(NO_TRANSACTION,
-								current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 
-						assertEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isEqualTo(outer.getTransactionKey());
 
 						return null;
 					}
@@ -455,43 +458,42 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.1 NotSupported starts a no transaction scope from transaction scope
 	 */
+	@Test
 	public void testNotSupportedFromTransaction() {
 
-		assertFalse(txControl.activeScope());
-		assertFalse(txControl.activeTransaction());
-		assertNull(txControl.getCurrentContext());
+		assertThat(txControl.activeScope()).isFalse();
+		assertThat(txControl.activeTransaction()).isFalse();
+		assertThat(txControl.getCurrentContext()).isNull();
 
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
 
-				assertTrue(txControl.activeScope());
-				assertTrue(txControl.activeTransaction());
+				assertThat(txControl.activeScope()).isTrue();
+				assertThat(txControl.activeTransaction()).isTrue();
 				final TransactionContext outer = txControl.getCurrentContext();
-				assertNotNull(outer);
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(outer).isNotNull();
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				txControl.notSupported(new Callable<Object>() {
 					@Override
 					public Object call() throws Exception {
-						assertTrue(txControl.activeScope());
-						assertFalse(txControl.activeTransaction());
+						assertThat(txControl.activeScope()).isTrue();
+						assertThat(txControl.activeTransaction()).isFalse();
 
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
-						assertEquals(NO_TRANSACTION,
-								current.getTransactionStatus());
+						assertThat(current).isNotNull();
+						assertThat(current.getTransactionStatus()).isEqualTo(NO_TRANSACTION);
 
-						assertNotEquals(outer.getTransactionKey(),
-								current.getTransactionKey());
+						assertThat(current.getTransactionKey()).isNotEqualTo(outer.getTransactionKey());
 
 						return null;
 					}
 				});
 
-				assertSame(outer, txControl.getCurrentContext());
-				assertEquals(ACTIVE, outer.getTransactionStatus());
+				assertThat(txControl.getCurrentContext()).isSameAs(outer);
+				assertThat(outer.getTransactionStatus()).isEqualTo(ACTIVE);
 
 				return null;
 			}
@@ -501,6 +503,7 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.3.1 setRollbackOnly test
 	 */
+	@Test
 	public void testMarkRollback() {
 
 		TransactionContext ctx = txControl
@@ -509,27 +512,27 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 					public TransactionContext call() throws Exception {
 						TransactionContext current = txControl
 								.getCurrentContext();
-						assertNotNull(current);
+						assertThat(current).isNotNull();
 
-						assertEquals(ACTIVE, current.getTransactionStatus());
-						assertFalse(current.getRollbackOnly());
+						assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+						assertThat(current.getRollbackOnly()).isFalse();
 
 						current.setRollbackOnly();
 
-						assertEquals(MARKED_ROLLBACK,
-								current.getTransactionStatus());
-						assertTrue(current.getRollbackOnly());
+						assertThat(current.getTransactionStatus()).isEqualTo(MARKED_ROLLBACK);
+						assertThat(current.getRollbackOnly()).isTrue();
 
 						return current;
 					}
 				});
 
-		assertEquals(ROLLED_BACK, ctx.getTransactionStatus());
+		assertThat(ctx.getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.1 runtime exception triggers rollback
 	 */
+	@Test
 	public void testUncheckedExceptionCausesRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -539,10 +542,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 				@Override
 				public TransactionContext call() throws Exception {
 					TransactionContext current = txControl.getCurrentContext();
-					assertNotNull(current);
+					assertThat(current).isNotNull();
 
-					assertEquals(ACTIVE, current.getTransactionStatus());
-					assertFalse(current.getRollbackOnly());
+					assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+					assertThat(current.getRollbackOnly()).isFalse();
 
 					ctx.set(current);
 
@@ -552,12 +555,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.1 checked exception triggers rollback
 	 */
+	@Test
 	public void testCheckedExceptionCausesRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -567,10 +571,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 				@Override
 				public TransactionContext call() throws Exception {
 					TransactionContext current = txControl.getCurrentContext();
-					assertNotNull(current);
+					assertThat(current).isNotNull();
 
-					assertEquals(ACTIVE, current.getTransactionStatus());
-					assertFalse(current.getRollbackOnly());
+					assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+					assertThat(current.getRollbackOnly()).isFalse();
 
 					ctx.set(current);
 
@@ -580,12 +584,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.2 ignored runtime exception does not trigger rollback
 	 */
+	@Test
 	public void testIgnoredUncheckedExceptionNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -597,11 +602,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -611,12 +615,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.2 ignored checked exception does not trigger rollback
 	 */
+	@Test
 	public void testIgnoredCheckedExceptionNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -628,11 +633,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -642,12 +646,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.2 ignored runtime exception does not trigger rollback
 	 */
+	@Test
 	public void testIgnoredUncheckedExceptionSubclassNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -659,11 +664,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -673,12 +677,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.2 ignored checked exception does not trigger rollback
 	 */
+	@Test
 	public void testIgnoredCheckedExceptionSubclassNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -690,11 +695,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -704,12 +708,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.2 ignored different runtime exception triggers rollback
 	 */
+	@Test
 	public void testIgnoredDifferentUncheckedExceptionRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -722,11 +727,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -736,12 +740,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.2 ignored different checked exception triggers rollback
 	 */
+	@Test
 	public void testIgnoredDifferentCheckedExceptionRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -754,11 +759,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -768,12 +772,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.2 ignored runtime exception does not trigger rollback
 	 */
+	@Test
 	public void testIgnoredExceptionInstanceNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -783,10 +788,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 				@Override
 				public TransactionContext call() throws Exception {
 					TransactionContext current = txControl.getCurrentContext();
-					assertNotNull(current);
+					assertThat(current).isNotNull();
 
-					assertEquals(ACTIVE, current.getTransactionStatus());
-					assertFalse(current.getRollbackOnly());
+					assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+					assertThat(current.getRollbackOnly()).isFalse();
 
 					ctx.set(current);
 
@@ -801,12 +806,13 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 			fail("Expected a ScopedWorkException");
 		} catch (ScopedWorkException e) {}
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.3 runtime exception triggers rollback in inherited transaction
 	 */
+	@Test
 	public void testUncheckedExceptionMarksRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -820,11 +826,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -834,17 +839,18 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 					fail("Expected a ScopedWorkException");
 				} catch (ScopedWorkException e) {}
 
-				assertEquals(MARKED_ROLLBACK, ctx.get().getTransactionStatus());
+				assertThat(ctx.get().getTransactionStatus()).isEqualTo(MARKED_ROLLBACK);
 				return null;
 			}
 		});
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.3 checked exception triggers rollback in inherited transaction
 	 */
+	@Test
 	public void testCheckedExceptionMarksRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -858,11 +864,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 						public TransactionContext call() throws Exception {
 							TransactionContext current = txControl
 									.getCurrentContext();
-							assertNotNull(current);
+							assertThat(current).isNotNull();
 
-							assertEquals(ACTIVE,
-									current.getTransactionStatus());
-							assertFalse(current.getRollbackOnly());
+							assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+							assertThat(current.getRollbackOnly()).isFalse();
 
 							ctx.set(current);
 
@@ -872,17 +877,18 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 					fail("Expected a ScopedWorkException");
 				} catch (ScopedWorkException e) {}
 
-				assertEquals(MARKED_ROLLBACK, ctx.get().getTransactionStatus());
+				assertThat(ctx.get().getTransactionStatus()).isEqualTo(MARKED_ROLLBACK);
 				return null;
 			}
 		});
 
-		assertEquals(ROLLED_BACK, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(ROLLED_BACK);
 	}
 
 	/**
 	 * 147.3.3.3 runtime exception triggers rollback in inherited transaction
 	 */
+	@Test
 	public void testIgnoredNestedUncheckedExceptionNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -899,11 +905,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 										throws Exception {
 									TransactionContext current = txControl
 											.getCurrentContext();
-									assertNotNull(current);
+									assertThat(current).isNotNull();
 
-									assertEquals(ACTIVE,
-											current.getTransactionStatus());
-									assertFalse(current.getRollbackOnly());
+									assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+									assertThat(current.getRollbackOnly()).isFalse();
 
 									ctx.set(current);
 
@@ -913,17 +918,18 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 					fail("Expected a ScopedWorkException");
 				} catch (ScopedWorkException e) {}
 
-				assertEquals(ACTIVE, ctx.get().getTransactionStatus());
+				assertThat(ctx.get().getTransactionStatus()).isEqualTo(ACTIVE);
 				return null;
 			}
 		});
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
 	 * 147.3.3.3 checked exception triggers rollback in inherited transaction
 	 */
+	@Test
 	public void testIgnoredNestedCheckedExceptionNoRollback() {
 
 		final AtomicReference<TransactionContext> ctx = new AtomicReference<>();
@@ -939,11 +945,10 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 										throws Exception {
 									TransactionContext current = txControl
 											.getCurrentContext();
-									assertNotNull(current);
+									assertThat(current).isNotNull();
 
-									assertEquals(ACTIVE,
-											current.getTransactionStatus());
-									assertFalse(current.getRollbackOnly());
+									assertThat(current.getTransactionStatus()).isEqualTo(ACTIVE);
+									assertThat(current.getRollbackOnly()).isFalse();
 
 									ctx.set(current);
 
@@ -953,12 +958,12 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 					fail("Expected a ScopedWorkException");
 				} catch (ScopedWorkException e) {}
 
-				assertEquals(ACTIVE, ctx.get().getTransactionStatus());
+				assertThat(ctx.get().getTransactionStatus()).isEqualTo(ACTIVE);
 				return null;
 			}
 		});
 
-		assertEquals(COMMITTED, ctx.get().getTransactionStatus());
+		assertThat(ctx.get().getTransactionStatus()).isEqualTo(COMMITTED);
 	}
 
 	/**
@@ -966,6 +971,7 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	 * out! 147.3.3.4.3 Read Only status cannot be changed in inherited
 	 * transaction
 	 */
+	@Test
 	public void testReadOnlyChange() {
 
 		txControl.build().readOnly().required(new Callable<Object>() {
@@ -996,6 +1002,7 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	 * out! 147.3.3.4.3 Read Only status cannot be changed in inherited
 	 * transaction
 	 */
+	@Test
 	public void testReadOnlySame() {
 
 		txControl.build().readOnly().required(new Callable<Object>() {
@@ -1022,6 +1029,7 @@ public class CommonTxLifecycleTestCase extends TxControlTestCase {
 	 * out! 147.3.3.4.3 Read Only status cannot be changed in inherited
 	 * transaction
 	 */
+	@Test
 	public void testReadOnlyChangeNewTran() {
 
 		txControl.build().readOnly().required(new Callable<Object>() {

@@ -19,6 +19,7 @@ package org.osgi.test.cases.transaction.control.jdbc;
 
 import static java.lang.String.valueOf;
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.wiring.BundleCapability;
 import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.resource.Capability;
@@ -40,6 +42,7 @@ public class CapabilityTestCase extends JDBCResourceTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlServiceCapability() throws Exception {
 
 		List<BundleCapability> capabilities = jdbcResourceProviderBundle
@@ -76,12 +79,8 @@ public class CapabilityTestCase extends JDBCResourceTestCase {
 				break;
 			}
 		}
-		assertTrue(
-				"No osgi.service capability for the Transaction Control service",
-				hasCapability);
-		assertTrue(
-				"The osgi.service capability has invalid local/xa attributes",
-				matchingAttrs);
-		assertTrue("Missing uses constraint on the osgi.service capability", uses);
+		assertThat(hasCapability).as("No osgi.service capability for the Transaction Control service").isTrue();
+		assertThat(matchingAttrs).as("The osgi.service capability has invalid local/xa attributes").isTrue();
+		assertThat(uses).as("Missing uses constraint on the osgi.service capability").isTrue();
 	}
 }

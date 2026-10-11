@@ -17,13 +17,21 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.transaction.control.TransactionControl;
-import org.osgi.test.support.OSGiTestCase;
+import org.osgi.test.common.annotation.InjectBundleContext;
 import org.osgi.util.tracker.ServiceTracker;
 
-public abstract class TxControlTestCase extends OSGiTestCase {
+public abstract class TxControlTestCase {
+
+	@InjectBundleContext
+	BundleContext		context;
 	
 	private ServiceTracker<TransactionControl,TransactionControl>	tracker;
 
@@ -37,14 +45,14 @@ public abstract class TxControlTestCase extends OSGiTestCase {
 
 	protected boolean												recoveryEnabled;
 
-	protected void setUp() throws InterruptedException {
+	@BeforeEach
+	public void setUp() throws InterruptedException {
 		tracker = new ServiceTracker<TransactionControl,TransactionControl>(
-				getContext(), TransactionControl.class, null);
+				context, TransactionControl.class, null);
 		tracker.open();
 		txControl = tracker.waitForService(5000);
 
-		assertNotNull("No Tx Control service available within 5 seconds",
-				txControl);
+		assertThat(txControl).as("No Tx Control service available within 5 seconds").isNotNull();
 
 		ServiceReference<TransactionControl> ref = tracker
 				.getServiceReference();
@@ -55,12 +63,11 @@ public abstract class TxControlTestCase extends OSGiTestCase {
 		xaEnabled = toBoolean(ref.getProperty("osgi.xa.enabled"));
 		recoveryEnabled = toBoolean(ref.getProperty("osgi.recovery.enabled"));
 
-		assertTrue(
-				"This transaction control service does not support local or xa transactions",
-				localEnabled || xaEnabled);
+		assertThat(localEnabled || xaEnabled).as("This transaction control service does not support local or xa transactions").isTrue();
 	}
 	
-	protected void tearDown() {
+	@AfterEach
+	public void tearDown() {
 		tracker.close();
 	}
 	

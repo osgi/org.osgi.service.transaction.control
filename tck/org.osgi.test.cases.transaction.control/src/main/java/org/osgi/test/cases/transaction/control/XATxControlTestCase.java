@@ -17,6 +17,8 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -31,6 +33,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.test.cases.transaction.control.resources.EmptyXAResource;
 
@@ -50,6 +53,7 @@ public class XATxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlSupportsXA() throws Exception {
 		if (!xaEnabled) {
 			return;
@@ -58,7 +62,7 @@ public class XATxControlTestCase extends TxControlTestCase {
 		txControl.required(new Callable<Object>() {
 			@Override
 			public Object call() throws Exception {
-				assertTrue(txControl.getCurrentContext().supportsXA());
+				assertThat(txControl.getCurrentContext().supportsXA()).isTrue();
 				return null;
 			}
 		});
@@ -70,6 +74,7 @@ public class XATxControlTestCase extends TxControlTestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public void testTxControlSupportsRecovery() throws Exception {
 		if (!recoveryEnabled) {
 			return;
@@ -113,7 +118,7 @@ public class XATxControlTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertFalse(stored.isEmpty());
+		assertThat(stored).isNotEmpty();
 		
 		final String name = stored.keySet().iterator().next();
 		final Semaphore sem = new Semaphore(0);
@@ -163,12 +168,12 @@ public class XATxControlTestCase extends TxControlTestCase {
 					}
 				});
 
-		ServiceRegistration< ? > reg = getContext()
+		ServiceRegistration< ? > reg = context
 				.registerService(recoveryIface.getName(), recovery, null);
 
 		try {
-			assertTrue(sem.tryAcquire(10, TimeUnit.SECONDS));
-			assertTrue(stored.isEmpty());
+			assertThat(sem.tryAcquire(10, TimeUnit.SECONDS)).isTrue();
+			assertThat(stored).isEmpty();
 		} finally {
 			reg.unregister();
 		}

@@ -17,11 +17,15 @@
  *******************************************************************************/
 package org.osgi.test.cases.transaction.control;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import javax.transaction.xa.XAException;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.ScopedWorkException;
 import org.osgi.service.transaction.control.TransactionException;
 import org.osgi.service.transaction.control.TransactionRolledBackException;
@@ -39,6 +43,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	/**
 	 * 147.3.2.1 Client throws a {@link RuntimeException}
 	 */
+	@Test
 	public void testClientRuntimeException() {
 
 		final IllegalArgumentException iae = new IllegalArgumentException(
@@ -53,13 +58,14 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			});
 			fail("Should fail with a ScopedWorkException");
 		} catch (ScopedWorkException swe) {
-			assertSame(iae, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(iae);
 		}
 	}
 
 	/**
 	 * 147.3.2.1 Client throws a checked {@link Exception}
 	 */
+	@Test
 	public void testClientCheckedException() {
 		
 		final IOException ioe = new IOException("Testing");
@@ -73,7 +79,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			});
 			fail("Should fail with a ScopedWorkException");
 		} catch (ScopedWorkException swe) {
-			assertSame(ioe, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(ioe);
 		}
 	}
 
@@ -81,6 +87,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.1 Client throws an exception, then the second scope throws a
 	 * {@link ScopedWorkException}
 	 */
+	@Test
 	public void testScopedWorkExceptionNesting() {
 
 		final IOException ioe = new IOException("Testing");
@@ -99,18 +106,19 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			});
 			fail("Should fail with a ScopedWorkException");
 		} catch (ScopedWorkException swe) {
-			assertSame(ioe, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(ioe);
 			Throwable[] suppressed = swe.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(1, suppressed.length);
-			assertTrue(suppressed[0] instanceof ScopedWorkException);
-			assertSame(ioe, suppressed[0].getCause());
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(1);
+			assertThat(suppressed[0]).isInstanceOf(ScopedWorkException.class);
+			assertThat(suppressed[0].getCause()).isSameAs(ioe);
 		}
 	}
 
 	/**
 	 * 147.3.2.2 Client rethrows a {@link RuntimeException}
 	 */
+	@Test
 	public void testRethrowRuntimeException() {
 
 		final IllegalArgumentException iae = new IllegalArgumentException(
@@ -130,7 +138,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			}
 			fail("Should fail with the original exception");
 		} catch (IllegalArgumentException e) {
-			assertSame(iae, e);
+			assertThat(e).isSameAs(iae);
 		}
 	}
 
@@ -138,6 +146,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.2 Client rethrows a {@link RuntimeException} but saying it might
 	 * be something else.
 	 */
+	@Test
 	public void testRethrowRuntimeExceptionWhenUsingAs() {
 
 		final IllegalArgumentException iae = new IllegalArgumentException(
@@ -157,7 +166,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			}
 			fail("Should fail with the original exception");
 		} catch (Exception e) {
-			assertSame(iae, e);
+			assertThat(e).isSameAs(iae);
 		}
 	}
 
@@ -165,6 +174,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.2 Client rethrows a {@link RuntimeException} but saying it might
 	 * be something else.
 	 */
+	@Test
 	public void testRethrowRuntimeExceptionWhenUsingAsOneOF() {
 
 		final IllegalArgumentException iae = new IllegalArgumentException(
@@ -184,13 +194,14 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			}
 			fail("Should fail with the original exception");
 		} catch (Exception e) {
-			assertSame(iae, e);
+			assertThat(e).isSameAs(iae);
 		}
 	}
 
 	/**
 	 * 147.3.2.2 Client rethrows a {@link RuntimeException}
 	 */
+	@Test
 	public void testRethrowCheckedException() {
 
 		final IOException ioe = new IOException("Testing");
@@ -209,7 +220,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			}
 			fail("Should fail with the original exception");
 		} catch (IOException e) {
-			assertSame(ioe, e);
+			assertThat(e).isSameAs(ioe);
 		}
 	}
 
@@ -217,6 +228,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.2 Client rethrows a checked {@link Exception} but saying it might
 	 * be something else.
 	 */
+	@Test
 	public void testRethrowCheckedExceptionWhenUsingAsWrongType() {
 
 		final IOException ioe = new IOException("Testing");
@@ -235,7 +247,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 			}
 			fail("Should fail with the original exception");
 		} catch (Exception e) {
-			assertSame(ioe, e);
+			assertThat(e).isSameAs(ioe);
 		}
 	}
 
@@ -243,6 +255,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.3 and table 147.3 - An error in local committing must trigger a
 	 * TransactionRolledBackException
 	 */
+	@Test
 	public void testTransactionExceptionNotWrappedLocal() {
 
 		try {
@@ -266,7 +279,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 
 			fail("Should fail with a TransactionRolledBackException");
 		} catch (Exception e) {
-			assertTrue(e instanceof TransactionRolledBackException);
+			assertThat(e).isInstanceOf(TransactionRolledBackException.class);
 		}
 	}
 
@@ -274,6 +287,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.3 and 147.4.6.1 - An error in XA committing must trigger a
 	 * TransactionRolledBackException
 	 */
+	@Test
 	public void testTransactionExceptionNotWrappedXA() {
 
 		try {
@@ -297,7 +311,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 
 			fail("Should fail with a TransactionRolledBackException");
 		} catch (Exception e) {
-			assertTrue(e instanceof TransactionRolledBackException);
+			assertThat(e).isInstanceOf(TransactionRolledBackException.class);
 		}
 	}
 
@@ -305,6 +319,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.3 and table 147.3 - An error in local committing must trigger a
 	 * TransactionRolledBackException
 	 */
+	@Test
 	public void testTransactionExceptionSuppressedLocal() {
 
 		try {
@@ -330,11 +345,11 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 
 			fail("Should fail with a ScopedWorkException");
 		} catch (Exception e) {
-			assertTrue(e instanceof ScopedWorkException);
+			assertThat(e).isInstanceOf(ScopedWorkException.class);
 			Throwable[] suppressed = e.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(1, suppressed.length);
-			assertTrue(suppressed[0] instanceof TransactionException);
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(1);
+			assertThat(suppressed[0]).isInstanceOf(TransactionException.class);
 		}
 	}
 
@@ -342,6 +357,7 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 	 * 147.3.2.3 and 147.4.6.1 - An error in XA committing must trigger a
 	 * TransactionRolledBackException
 	 */
+	@Test
 	public void testTransactionExceptionSuppressedXA() {
 
 		try {
@@ -366,12 +382,11 @@ public class CommonTxClientExceptionTestCase extends TxControlTestCase {
 
 			fail("Should fail with a ScopedWorkException");
 		} catch (Exception e) {
-			assertTrue(e instanceof ScopedWorkException);
+			assertThat(e).isInstanceOf(ScopedWorkException.class);
 			Throwable[] suppressed = e.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(1, suppressed.length);
-			assertTrue(suppressed[0].getMessage(),
-					suppressed[0] instanceof TransactionException);
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(1);
+			assertThat(suppressed[0] instanceof TransactionException).as(suppressed[0].getMessage()).isTrue();
 		}
 	}
 }

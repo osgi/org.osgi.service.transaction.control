@@ -18,6 +18,8 @@
 package org.osgi.test.cases.transaction.control;
 
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.osgi.service.transaction.control.TransactionStatus.ACTIVE;
 import static org.osgi.service.transaction.control.TransactionStatus.COMMITTED;
 import static org.osgi.service.transaction.control.TransactionStatus.COMMITTING;
@@ -35,6 +37,7 @@ import java.util.function.Consumer;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.Xid;
 
+import org.junit.jupiter.api.Test;
 import org.osgi.service.transaction.control.ScopedWorkException;
 import org.osgi.service.transaction.control.TransactionException;
 import org.osgi.service.transaction.control.TransactionRolledBackException;
@@ -53,6 +56,7 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 	/**
 	 * 147.4.1 PreCompletion and PostCompletion callbacks
 	 */
+	@Test
 	public void testSuccessfulCallbackOrdering() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -81,12 +85,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(ACTIVE, COMMITTED), list);
+		assertThat(list).isEqualTo(asList(ACTIVE, COMMITTED));
 	}
 
 	/**
 	 * 147.4.1 PreCompletion and PostCompletion callbacks
 	 */
+	@Test
 	public void testSuccessfulCallbackOrderingNoTransaction() {
 
 		final List<Integer> list = new ArrayList<>();
@@ -116,12 +121,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(1, 3), list);
+		assertThat(list).isEqualTo(asList(1, 3));
 	}
 
 	/**
 	 * 147.4.1 PreCompletion registers a PreCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPreCompletion() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -157,12 +163,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(ACTIVE), list);
+		assertThat(list).isEqualTo(asList(ACTIVE));
 	}
 
 	/**
 	 * 147.4.1 PreCompletion registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletion() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -190,12 +197,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(ACTIVE, COMMITTED), list);
+		assertThat(list).isEqualTo(asList(ACTIVE, COMMITTED));
 	}
 
 	/**
 	 * 147.4.1 PreCompletion registers a PostCompletion callbacks
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionNoTransaction() {
 
 		final List<Integer> list = new ArrayList<>();
@@ -224,12 +232,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(1, 3), list);
+		assertThat(list).isEqualTo(asList(1, 3));
 	}
 	
 	/**
 	 * 147.4.1 Resource registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionFromCommittingLocalResource() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -268,13 +277,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 		});
 
 		if (testSupported) {
-			assertEquals(asList(COMMITTING, COMMITTED), list);
+			assertThat(list).isEqualTo(asList(COMMITTING, COMMITTED));
 		}
 	}
 
 	/**
 	 * 147.4.1 Resource registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionFromRollingBackLocalResource() {
 		
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -316,13 +326,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 		});
 
 		if (testSupported) {
-			assertEquals(asList(ROLLING_BACK, ROLLED_BACK), list);
+			assertThat(list).isEqualTo(asList(ROLLING_BACK, ROLLED_BACK));
 		}
 	}
 
 	/**
 	 * 147.4.1 Resource registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionFromCommittingXAResource() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -363,13 +374,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 		});
 
 		if (testSupported) {
-			assertEquals(asList(COMMITTING, COMMITTED), list);
+			assertThat(list).isEqualTo(asList(COMMITTING, COMMITTED));
 		}
 	}
 
 	/**
 	 * 147.4.1 Resource registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionFromRollingBackXAResource() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -408,13 +420,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 		});
 
 		if (testSupported) {
-			assertEquals(asList(ROLLING_BACK, ROLLED_BACK), list);
+			assertThat(list).isEqualTo(asList(ROLLING_BACK, ROLLED_BACK));
 		}
 	}
 
 	/**
 	 * 147.4.1 Resource registers a PostCompletion callback
 	 */
+	@Test
 	public void testLateRegisterOfPostCompletionFromPostCompletion() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -463,13 +476,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 		});
 
 		if (testSupported) {
-			assertEquals(asList(COMMITTED), list);
+			assertThat(list).isEqualTo(asList(COMMITTED));
 		}
 	}
 
 	/**
 	 * 147.4.1.1 PreCompletion setRollbackOnly
 	 */
+	@Test
 	public void testSetRollbackOnlyFromPreCompletion() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -499,12 +513,13 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(asList(MARKED_ROLLBACK, ROLLED_BACK), list);
+		assertThat(list).isEqualTo(asList(MARKED_ROLLBACK, ROLLED_BACK));
 	}
 
 	/**
 	 * 147.4.1.1 PreCompletion throw RuntimeException
 	 */
+	@Test
 	public void testPreCompletionThrowsException() {
 
 		final List<TransactionStatus> list = new ArrayList<>();
@@ -536,15 +551,16 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 				}
 			});
 		} catch (TransactionRolledBackException swe) {
-			assertSame(re, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(re);
 		}
 
-		assertEquals(asList(ACTIVE, ROLLED_BACK), list);
+		assertThat(list).isEqualTo(asList(ACTIVE, ROLLED_BACK));
 	}
 
 	/**
 	 * 147.4.1.1 precompletion should not hide a ScopedWorkException
 	 */
+	@Test
 	public void testPreCompletionThrowsExceptionSuppressed() {
 
 		final RuntimeException re = new RuntimeException("Bang");
@@ -567,11 +583,11 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			});
 			fail("Should not exit normally");
 		} catch (ScopedWorkException swe) {
-			assertSame(workEx, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(workEx);
 			Throwable[] suppressed = swe.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(1, suppressed.length);
-			assertSame(re, suppressed[0]);
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(1);
+			assertThat(suppressed[0]).isSameAs(re);
 		}
 	}
 
@@ -579,6 +595,7 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 	 * 147.4.1.1 precompletion should cause a TransactionException for
 	 * NO_TRANSACTION scope
 	 */
+	@Test
 	public void testPreCompletionThrowsExceptionNoTransaction() {
 
 		final RuntimeException re = new RuntimeException("Bang");
@@ -600,13 +617,14 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			});
 			fail("Should not exit normally");
 		} catch (TransactionException te) {
-			assertSame(re, te.getCause());
+			assertThat(te.getCause()).isSameAs(re);
 		}
 	}
 
 	/**
 	 * 147.4.1.1 precompletion should not hide a ScopedWorkException
 	 */
+	@Test
 	public void testPreCompletionThrowsExceptionSuppressedNoTransaction() {
 
 		final RuntimeException re = new RuntimeException("Bang");
@@ -629,17 +647,18 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			});
 			fail("Should not exit normally");
 		} catch (ScopedWorkException swe) {
-			assertSame(workEx, swe.getCause());
+			assertThat(swe.getCause()).isSameAs(workEx);
 			Throwable[] suppressed = swe.getSuppressed();
-			assertNotNull(suppressed);
-			assertEquals(1, suppressed.length);
-			assertSame(re, suppressed[0]);
+			assertThat(suppressed).isNotNull();
+			assertThat(suppressed).hasSize(1);
+			assertThat(suppressed[0]).isSameAs(re);
 		}
 	}
 
 	/**
 	 * 147.4.1.2 postcompletion exception should not result in an error
 	 */
+	@Test
 	public void testPostCompletionFailure() {
 
 		final RuntimeException re = new RuntimeException("Bang");
@@ -663,6 +682,7 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 	/**
 	 * 147.4.1.2 postcompletion should have access to scoped variables
 	 */
+	@Test
 	public void testPostCompletionCanAccessScopedVariable() {
 
 		final AtomicInteger marker = new AtomicInteger();
@@ -687,6 +707,6 @@ public class CommonTxContextCallbacksTestCase extends TxControlTestCase {
 			}
 		});
 
-		assertEquals(5, marker.get());
+		assertThat(marker.get()).isEqualTo(5);
 	}
 }
