@@ -331,9 +331,9 @@ public abstract class CommonJDBCProviderFactoryTestCase
 
 		try {
 			scoped.createStatement();
-			fail("Should not be able to use a scoped resource outside of a scope");
+			fail("This resource should be invalid after the provider is released");
 		} catch (TransactionException te) {
-			// Expected
+			// expected
 		}
 
 		noTran.finish(false);
