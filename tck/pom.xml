@@ -40,7 +40,7 @@
 		<servicemix-junit.version>4.13.2_1</servicemix-junit.version>
 		<slf4j.version>1.7.36</slf4j.version>
 		<tx-control-provider-jdbc-xa.version>1.0.0</tx-control-provider-jdbc-xa.version>
-		<tx-control-provider-jpa-xa.version>1.0.0</tx-control-provider-jpa-xa.version>
+		<tx-control-provider-jpa-xa.version>1.0.1</tx-control-provider-jpa-xa.version>
 		<tx-control-service-xa.version>1.0.0</tx-control-service-xa.version>
 	</properties>
 
