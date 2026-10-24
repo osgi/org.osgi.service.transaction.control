@@ -16,7 +16,7 @@
 		<geronimo-jta_1.1_spec.version>1.1.1</geronimo-jta_1.1_spec.version>
 		<h2.version>1.4.193</h2.version>
 		<javax.persistence_2.1.version>2.7.0</javax.persistence_2.1.version>
-		<org.apache.aries.jpa.container.version>2.7.0</org.apache.aries.jpa.container.version>
+		<org.apache.aries.jpa.container.version>2.7.3</org.apache.aries.jpa.container.version>
 		<org.apache.aries.jpa.eclipselink.adapter.version>2.7.3</org.apache.aries.jpa.eclipselink.adapter.version>
 		<org.apache.felix.configadmin.version>1.9.26</org.apache.felix.configadmin.version>
 		<org.eclipse.osgi.version>3.24.300</org.eclipse.osgi.version>
